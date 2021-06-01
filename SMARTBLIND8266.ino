@@ -117,6 +117,10 @@ void loop() {
     }
     else
     {
+      digitalWrite(16, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(4, LOW);
+      digitalWrite(0, LOW);
       mqttclient.publish(statusTopic,"AllGood");
       delay(500);
     }
@@ -201,10 +205,6 @@ long stepperToTarget(long currstep, long targetsteps){
       myStepper.step(stepstogo);
       //record no longer moving in the flash and update moving var and final position var
       currstep=currstep+stepstogo;
-      digitalWrite(16, LOW);
-      digitalWrite(5, LOW);
-      digitalWrite(4, LOW);
-      digitalWrite(0, LOW);
     }
     else if (stepstogo>512)
     {
