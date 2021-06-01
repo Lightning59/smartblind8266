@@ -26,7 +26,7 @@ const int resetTrigger = 257;
 const int requestStatus = 258;
 const int requestRawStatus = 259;
 long currstep;
-long tagetstep;
+long targetstep;
 const int stepstolevel=2000;
 bool finishedMove=true;
 
@@ -95,10 +95,28 @@ void loop() {
   { //returns true if still connected if not start troubleshooting and potentially restart.
     if(setuserlevel!=userlevel)
     {
-      mqttclient.publish(statusTopic,"Running Motors");
-      delay(500);
+      setlevel=usertoMachine(setuserlevel);
+      Serial.println("setlevelis");
+      Serial.println(setlevel);
+      long setstep=setlevel*stepstolevel;
+      Serial.println("targetstepis");
+      Serial.println(setstep);
+      Serial.println("pre run currstepis");
+      Serial.println(currstep);
+      currstep=stepperToTarget(currstep, setstep);
+      Serial.println("post run currstepis");
+      Serial.println(currstep);
+      currlevel=currstep/stepstolevel;
+      Serial.println("currlevelis");
+      Serial.println(currlevel);
+      userlevel=currlevel-10;
+      Serial.println("userlevelis");
+      Serial.println(userlevel);
+      Serial.println("setuserlevelis");
+      Serial.println(setuserlevel);
     }
-    else{
+    else
+    {
       mqttclient.publish(statusTopic,"AllGood");
       delay(500);
     }
@@ -165,4 +183,44 @@ void mqttRecieved(char* topic, byte* payload, unsigned int length){
     Serial.println("Invalid Command Provided");
     mqttclient.publish(statusTopic,"Invalid Command Provided");
   }
+}
+
+int usertoMachine(int ul){
+  return ul+10;
+}
+
+long stepperToTarget(long currstep, long targetsteps){
+    long stepstogo=targetsteps-currstep;
+    Serial.println("stepstogo");
+    Serial.println(stepstogo);
+    Serial.println("labs");
+    long labstogo = labs(stepstogo);
+    Serial.println(labstogo);
+    if (labs(stepstogo)<512){
+      //Record moving in the flash and update moving var
+      myStepper.step(stepstogo);
+      //record no longer moving in the flash and update moving var and final position var
+      currstep=currstep+stepstogo;
+      digitalWrite(16, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(4, LOW);
+      digitalWrite(0, LOW);
+    }
+    else if (stepstogo>512)
+    {
+      //record moving in the flash and update moving var
+      myStepper.step(512);
+      //record still moving in the flash and update moving var and final position var
+      currstep+=512;
+    }
+    else if (stepstogo<-512)
+    {
+      //record moving in the flash and update moving var
+      myStepper.step(-512);
+      //record still moving in the flash and update moving var and final position var
+      currstep-=512;
+    }
+  ESP.wdtFeed();  
+  mqttclient.loop();
+  return currstep;
 }
