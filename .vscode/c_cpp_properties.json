@@ -42,6 +42,7 @@
                 "C:\\Users\\evanm\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.0\\libraries\\ESP8266WiFi\\src",
                 "C:\\Program Files (x86)\\Arduino\\libraries\\Stepper\\src",
                 "C:\\Users\\evanm\\Documents\\Arduino\\libraries\\PubSubClient\\src",
+                "C:\\Users\\evanm\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.0\\libraries\\EEPROM",
                 "c:\\users\\evanm\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.0.0-newlib4.0.0-gnu23-48f7b08\\xtensa-lx106-elf\\include\\c++\\10.2.0",
                 "c:\\users\\evanm\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.0.0-newlib4.0.0-gnu23-48f7b08\\xtensa-lx106-elf\\include\\c++\\10.2.0\\xtensa-lx106-elf",
                 "c:\\users\\evanm\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.0.0-newlib4.0.0-gnu23-48f7b08\\xtensa-lx106-elf\\include\\c++\\10.2.0\\backward",

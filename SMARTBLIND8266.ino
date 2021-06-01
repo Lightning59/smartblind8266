@@ -3,6 +3,7 @@
 #define MQTT_SOCKET_TIMEOUT 1
 #include <PubSubClient.h>
 #include "const_Credentials.h"
+#include <EEPROM.h>
 
 WiFiClient espClient;
 PubSubClient mqttclient(espClient);
@@ -29,6 +30,7 @@ long currstep;
 long targetstep;
 const int stepstolevel=2000;
 bool finishedMove=true;
+bool eEPROM_FinishedMove;
 
 const int stepsPerRevolution = 2048;
 Stepper myStepper(stepsPerRevolution, 16,4,5,0);
@@ -88,6 +90,21 @@ void setup() {
   userlevel=0;
   currlevel = userlevel+10; // value 
   currstep = currlevel*stepstolevel;
+
+  EEPROM.begin(5);
+
+
+  EEPROM.get(0,eEPROM_FinishedMove);
+  if (eEPROM_FinishedMove){
+    ///nothing all is good
+    Serial.println("EEprom says true");
+  }
+  else if (eEPROM_FinishedMove==false)
+  {
+    Serial.println("EEprom says false");
+  }
+  Serial.println(eEPROM_FinishedMove);
+  
 }
 
 void loop() {
@@ -95,28 +112,30 @@ void loop() {
   { //returns true if still connected if not start troubleshooting and potentially restart.
     if(setuserlevel!=userlevel)
     {
+      Serial.println("starting Loop Read 0 from EEPROM");
+      EEPROM.get(0,eEPROM_FinishedMove);
+      Serial.println(eEPROM_FinishedMove);
+      if (eEPROM_FinishedMove){
+        Serial.println("Writing false to 0 from EEPROM");
+        EEPROM.put(0,false);
+        EEPROM.commit();
+      }      
       setlevel=usertoMachine(setuserlevel);
-      Serial.println("setlevelis");
-      Serial.println(setlevel);
       long setstep=setlevel*stepstolevel;
-      Serial.println("targetstepis");
-      Serial.println(setstep);
-      Serial.println("pre run currstepis");
-      Serial.println(currstep);
       currstep=stepperToTarget(currstep, setstep);
-      Serial.println("post run currstepis");
-      Serial.println(currstep);
       currlevel=currstep/stepstolevel;
-      Serial.println("currlevelis");
-      Serial.println(currlevel);
       userlevel=currlevel-10;
-      Serial.println("userlevelis");
-      Serial.println(userlevel);
-      Serial.println("setuserlevelis");
-      Serial.println(setuserlevel);
+
     }
     else
     {
+      Serial.println("starting Loop ELSE Read 0 from EEPROM");
+      EEPROM.get(0,eEPROM_FinishedMove);
+      if (!eEPROM_FinishedMove){
+        Serial.println("Writing true to 0 EEPROM ");
+        EEPROM.put(0,true);
+        EEPROM.commit();
+      } 
       digitalWrite(16, LOW);
       digitalWrite(5, LOW);
       digitalWrite(4, LOW);
