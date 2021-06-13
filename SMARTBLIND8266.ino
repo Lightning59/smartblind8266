@@ -14,9 +14,10 @@ char levelTopic[32];
 char rawlevelTopic[32];
 int mqttconnectattempts=0;
 int wificonnectattempts=0;
-int setRawLevel=10;
+const int caltorawoffset=1;
+int setRawLevel=caltorawoffset;
 int setCalLevel=0;
-int currRawLevel=10;
+int currRawLevel=caltorawoffset;
 int currCalLevel=0;
 const int maxspeed = 10; //rpm 15 is an absolute max for current motor
 const int maxRawLevel = 120;
@@ -34,12 +35,15 @@ unsigned long lastStatusBroadcast=0;
 bool finishedMove=true;
 bool eEPROM_FinishedMove;
 volatile bool rezeroRequested=false;
+volatile bool toptravel=false;
 bool requestedLevel;
 bool requestedRawLevel;
+
 
 //define hardware
 //interrup pins
 const byte interruptPin=12;
+const byte zeroPin=13;
 
 //steps per Rev is a constant for the motor; steps per level indexes the 0-100 scale to this scale.
 const int stepsPerRevolution = 2048;
@@ -53,6 +57,10 @@ void IRAM_ATTR physRezeroPress(){
   //pass if it hasn't been half a second to debounce switch
 }
 
+void IRAM_ATTR zeroOutTop(){
+  toptravel=true;
+}
+
 void setup() {
   // Steup Serial Connection
   Serial.begin(115200);
@@ -63,6 +71,8 @@ void setup() {
   pinMode(interruptPin, INPUT_PULLUP);
   //rezero:
   attachInterrupt(digitalPinToInterrupt(interruptPin), physRezeroPress, FALLING);
+  attachInterrupt(digitalPinToInterrupt(zeroPin), zeroOutTop, FALLING);
+
 
   //setup wifi connection
   WiFi.begin(ssid, password);
@@ -153,13 +163,30 @@ void setup() {
 }
 
 void loop() {
-  if(mqttclient.loop())
-  { //returns true if still connected if not start troubleshooting and potentially restart.
+  if(mqttclient.loop()){ //returns true if still connected if not start troubleshooting and potentially restart.
     if(rezeroRequested){
       //call rezore routine here then clear flag
       Serial.println("should now run rezero if implemented");
+      while(toptravel!=true){
+        currstep=256;
+        targetstep=0;
+        currstep=stepperToTarget(currstep,targetstep);
+        ESP.wdtFeed();
+        mqttclient.loop();
+        Serial.println("waiting for press");
+      }
+      Serial.println("pressed at top exiting routine.");
       rezeroRequested=false;
+      toptravel=false;
+      currstep=0;
+      targetstep=20000;
+      currCalLevel=-caltorawoffset;
+      currRawLevel=0;
+      setRawLevel=caltorawoffset;
+      setCalLevel=0;
+
     }
+    else{toptravel=false;}
     if(currstep!=targetstep){ //steps differ so need to set EEPROM flag to moving
       EEPROM.get(0,eEPROM_FinishedMove);
       if (eEPROM_FinishedMove){ //Right now finished move is true need to set to false Else already false no need to rewrite
@@ -260,6 +287,7 @@ void mqttRecieved(char* topic, byte* payload, unsigned int length){
   {
     Serial.println("Starting Rezero Routine");
     mqttclient.publish(statusTopic,"Beginning Zero Process");
+    rezeroRequested=true;
   }
   else if (value>=minCalLevel && value <=maxCalLevel){ //Valid user set values.
     setCalLevel=value;
@@ -272,10 +300,10 @@ void mqttRecieved(char* topic, byte* payload, unsigned int length){
 
 
 int usertoMachine(int ul){/// converts the user level (calibrated level) to raw machine level
-  return ul+10;
+  return ul+caltorawoffset;
 }
 int machinetoUser(int ml){/// converts the macine level (raw level) to cal User level
-  return ml-10;
+  return ml-caltorawoffset;
 }
 
 
